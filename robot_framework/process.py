@@ -17,9 +17,6 @@ import os
 def process(orchestrator_connection: OrchestratorConnection, queue_element: QueueElement | None = None) -> None:
     """Do the primary process of the robot."""
     orchestrator_connection.log_trace("Running process.")
-    RobotCredentials = orchestrator_connection.get_credential("Robot365User")
-    username = RobotCredentials.username
-    password = RobotCredentials.password
 
     NovaToken = orchestrator_connection.get_credential("KMDAccessToken")
     Secret = orchestrator_connection.get_credential("KMDClientSecret")
@@ -31,7 +28,16 @@ def process(orchestrator_connection: OrchestratorConnection, queue_element: Queu
 
     sharepoint_site = f"{orchestrator_connection.get_constant("AarhusKommuneSharePoint").value}/Teams/tea-teamsite10168"
 
-    client = sharepoint_client(username, password, sharepoint_site, orchestrator_connection)
+    certification = orchestrator_connection.get_credential("SharePointCert")
+    api = orchestrator_connection.get_credential("SharePointAPI")
+    
+    tenant = api.username
+    client_id = api.password
+    thumbprint = certification.username
+    cert_path = certification.password
+    
+    client = sharepoint_client(tenant, client_id, thumbprint, cert_path, sharepoint_site, orchestrator_connection)
+
 
     # Authenticate
     auth_payload = {
@@ -97,12 +103,18 @@ def process(orchestrator_connection: OrchestratorConnection, queue_element: Queu
         os.remove(file_name)
 
 
-def sharepoint_client(username: str, password: str, sharepoint_site_url: str, orchestrator_connection: OrchestratorConnection) -> ClientContext:
+def sharepoint_client(tenant: str, client_id: str, thumbprint: str, cert_path: str, sharepoint_site_url: str, orchestrator_connection: OrchestratorConnection) -> ClientContext:
     """
     Creates and returns a SharePoint client context.
     """
     # Authenticate to SharePoint
-    ctx = ClientContext(sharepoint_site_url).with_credentials(UserCredential(username, password))
+    cert_credentials = {
+        "tenant": tenant,
+        "client_id": client_id,
+        "thumbprint": thumbprint,
+        "cert_path": cert_path
+    }
+    ctx = ClientContext(sharepoint_site_url).with_client_certificate(**cert_credentials)
 
     # Load and verify connection
     web = ctx.web
