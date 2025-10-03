@@ -55,10 +55,10 @@ def process(orchestrator_connection: OrchestratorConnection, queue_element: Queu
 
     response.raise_for_status()
     access_token = response.json().get("access_token")
-
+    api_baseurl = orchestrator_connection.get_constant("KMDNovaURL").value
     # Caseworkers to process
     caseworkers = ["AZX0018", "2GBYGSAG Byggeri"]
-    api_url = "https://novaapi.kmd.dk/api/Document/GetList?api-version=2.0-Case"
+    api_url = f"{api_baseurl}/Document/GetList?api-version=2.0-Case"
 
     for caseWorker in caseworkers:
         headers = {
